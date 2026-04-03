@@ -21,11 +21,13 @@ exports.verifyPasswordResetCode = onCall(async (request) => {
 
     const docID = email;
     const resetRef = db.collection("pending_password_resets").doc(docID);
-
     const resetSnap = await resetRef.get();
 
     if (!resetSnap.exists) {
-      throw new HttpsError("not-found", "Password reset request not found.");
+      throw new HttpsError(
+        "not-found",
+        "Password reset request not found."
+      );
     }
 
     const resetData = resetSnap.data();
@@ -95,7 +97,10 @@ exports.verifyPasswordResetCode = onCall(async (request) => {
         );
       }
 
-      throw new HttpsError("invalid-argument", "Invalid password reset code.");
+      throw new HttpsError(
+        "invalid-argument",
+        "Invalid password reset code."
+      );
     }
 
     await resetRef.update({
