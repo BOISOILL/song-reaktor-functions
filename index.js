@@ -12,3 +12,4 @@ exports.verifyCode = require("./src/callable/verifyCode").verifyCode;
 exports.sendPasswordResetCode = require("./src/callable/sendPasswordResetCode").sendPasswordResetCode;
 exports.verifyPasswordResetCode = require("./src/callable/verifyPasswordResetCode").verifyPasswordResetCode;
 exports.resetPasswordWithCode = require("./src/callable/resetPasswordWithCode").resetPasswordWithCode;
+exports.completeStudioSession = require("./src/callable/completeStudioSession").completeStudioSession;
