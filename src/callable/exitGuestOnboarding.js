@@ -34,6 +34,10 @@ exports.exitGuestOnboarding = onCall(async (request) => {
 
   const updateData = {
     updatedAt: FieldValue.serverTimestamp(),
+
+    // 🔥 NEW ANALYTICS FIELDS
+    exitSlideIndex: currentIndex,
+    totalSlides: lastIndex + 1,
   };
 
   if (isCompleted) {
