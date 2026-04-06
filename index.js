@@ -13,3 +13,5 @@ exports.sendPasswordResetCode = require("./src/callable/sendPasswordResetCode").
 exports.verifyPasswordResetCode = require("./src/callable/verifyPasswordResetCode").verifyPasswordResetCode;
 exports.resetPasswordWithCode = require("./src/callable/resetPasswordWithCode").resetPasswordWithCode;
 exports.completeStudioSession = require("./src/callable/completeStudioSession").completeStudioSession;
+exports.updateGuestOnboardingProgress =
+  require("./src/callable/updateGuestOnboardingProgress").updateGuestOnboardingProgress;
