@@ -15,3 +15,4 @@ exports.resetPasswordWithCode = require("./src/callable/resetPasswordWithCode").
 exports.completeStudioSession = require("./src/callable/completeStudioSession").completeStudioSession;
 exports.updateGuestOnboardingProgress =
   require("./src/callable/updateGuestOnboardingProgress").updateGuestOnboardingProgress;
+  exports.exitGuestOnboarding = require("./src/callable/exitGuestOnboarding").exitGuestOnboarding;
