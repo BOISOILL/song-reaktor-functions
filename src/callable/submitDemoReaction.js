@@ -4,7 +4,7 @@ const { FieldValue } = require("firebase-admin/firestore");
 
 const db = admin.firestore();
 
-exports.submitDemoReaction = onCall(async (request) => {
+exports.submitDemoReaktion = onCall(async (request) => {
   const data = request.data || {};
 
   const guestSessionId = data.guestSessionId;
