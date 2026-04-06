@@ -16,3 +16,4 @@ exports.completeStudioSession = require("./src/callable/completeStudioSession").
 exports.updateGuestOnboardingProgress =
   require("./src/callable/updateGuestOnboardingProgress").updateGuestOnboardingProgress;
   exports.exitGuestOnboarding = require("./src/callable/exitGuestOnboarding").exitGuestOnboarding;
+  exports.enterGuestDemo = require("./src/callable/enterGuestDemo").enterGuestDemo;
