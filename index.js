@@ -17,3 +17,4 @@ exports.updateGuestOnboardingProgress =
   require("./src/callable/updateGuestOnboardingProgress").updateGuestOnboardingProgress;
   exports.exitGuestOnboarding = require("./src/callable/exitGuestOnboarding").exitGuestOnboarding;
   exports.enterGuestDemo = require("./src/callable/enterGuestDemo").enterGuestDemo;
+  exports.submitDemoReaction = require("./src/callable/submitDemoReaction").submitDemoReaction;
