@@ -33,8 +33,8 @@ exports.submitDemoReaktion = onCall(async (request) => {
   await ref.update({
     demoSongId,
     demoRating,
-    demoReactionSubmitted: true,
-    demoReactionSubmittedAt: FieldValue.serverTimestamp(),
+    demoReaktionSubmitted: true,
+    demoReaktionSubmittedAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });
 
@@ -43,6 +43,6 @@ exports.submitDemoReaktion = onCall(async (request) => {
     guestSessionId,
     demoSongId,
     demoRating,
-    demoReactionSubmitted: true,
+    demoReaktionSubmitted: true,
   };
 });
