@@ -1,4 +1,18 @@
-const {setGlobalOptions} = require("firebase-functions");
+exports.updateGuestOnboardingProgress =
+  require("./src/callable/updateGuestOnboardingProgress")
+    .updateGuestOnboardingProgress;
+
+exports.exitGuestOnboarding =
+  require("./src/callable/exitGuestOnboarding").exitGuestOnboarding;
+
+exports.enterGuestDemo =
+  require("./src/callable/enterGuestDemo").enterGuestDemo;
+
+exports.submitDemoReaction =
+  require("./src/callable/submitDemoReaction").submitDemoReaction;
+
+exports.submitDemoReaktion =
+  require("./src/callable/submitDemoReaktion").submitDemoReaktionconst {setGlobalOptions} = require("firebase-functions");
 const admin = require("firebase-admin");
 
 admin.initializeApp(); // ✅ REQUIRED
@@ -18,3 +32,6 @@ exports.updateGuestOnboardingProgress =
   exports.exitGuestOnboarding = require("./src/callable/exitGuestOnboarding").exitGuestOnboarding;
   exports.enterGuestDemo = require("./src/callable/enterGuestDemo").enterGuestDemo;
   exports.submitDemoReaction = require("./src/callable/submitDemoReaction").submitDemoReaction;
+  exports.submitDemoReaktion =
+  require("./src/callable/submitDemoReaktion").submitDemoReaktion;
+  
