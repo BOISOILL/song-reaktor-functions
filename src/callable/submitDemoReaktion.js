@@ -8,6 +8,7 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
   const guestSessionId = data.guestSessionId || "";
   const explorerSessionId = data.explorerSessionId;
   const userEmail = data.userEmail;
+  const userDocId = data.userDocId;
   const demoSongId = data.demoSongId;
   const demoRating = data.demoRating;
   const comments = data.comments || "";
@@ -44,23 +45,17 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
     );
   }
 
+  if (!userDocId) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "userDocId is required."
+    );
+  }
+
   const db = admin.firestore();
 
   const explorerRef = db.collection("explorer_sessions").doc(explorerSessionId);
-  const userQuery = await db
-  .collection("users")
-  .where("email", "==", userEmail)
-  .limit(1)
-  .get();
-
-if (userQuery.empty) {
-  throw new functions.https.HttpsError(
-    "not-found",
-    "User document not found."
-  );
-}
-
-const userRef = userQuery.docs[0].ref;
+  const userRef = db.collection("users").doc(userDocId);
   const reaktionRef = db.collection("reaktions").doc();
 
   await db.runTransaction(async (transaction) => {
@@ -89,6 +84,7 @@ const userRef = userQuery.docs[0].ref;
       guestSessionId,
       explorerSessionId,
       userEmail,
+      userDocId,
       songId: demoSongId,
       songName,
       artistName,
@@ -107,35 +103,25 @@ const userRef = userQuery.docs[0].ref;
       reaktionSubmittedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-   transaction.update(explorerRef, {
-  completedSongIds: updatedCompletedSongIds,
-  lastCompletedSongId: demoSongId,
-  currentSongIndex: nextSongIndex,
-  unlockedSongIndex: Math.max(unlockedSongIndex, nextSongIndex),
+    transaction.update(explorerRef, {
+      completedSongIds: updatedCompletedSongIds,
+      lastCompletedSongId: demoSongId,
+      currentSongIndex: nextSongIndex,
+      unlockedSongIndex: Math.max(unlockedSongIndex, nextSongIndex),
+      lastDemoRating: demoRating || null,
+      totalReaktions: admin.firestore.FieldValue.increment(1),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
 
-  lastDemoRating: demoRating || null,
-
-  totalReaktions:
-    admin.firestore.FieldValue.increment(1),
-
-  updatedAt:
-    admin.firestore.FieldValue.serverTimestamp(),
-});
-
-        transaction.set(
+    transaction.set(
       userRef,
       {
         email: userEmail,
-
         totalReaktions: admin.firestore.FieldValue.increment(1),
         dambCoins: admin.firestore.FieldValue.increment(1),
-
         voiceWeight: admin.firestore.FieldValue.increment(1),
-
         progressPercent: admin.firestore.FieldValue.increment(1),
-
         listenerTier: "Rookie Reaktor",
-
         lastReaktionAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
@@ -160,6 +146,7 @@ const userRef = userQuery.docs[0].ref;
     reaktionId: reaktionRef.id,
     guestSessionId,
     explorerSessionId,
+    userDocId,
     demoSongId,
     demoRating,
     demoReaktionSubmitted: true,
