@@ -185,12 +185,18 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
     });
 
     transaction.update(explorerRef, {
+      userDocId,
+      userEmail,
+      mode: "demo",
+      status: "active",
+    
       completedSongIds: updatedCompletedSongIds,
       lastCompletedSongId: demoSongId,
       currentSongIndex: nextSongIndex,
       unlockedSongIndex: Math.max(unlockedSongIndex, nextSongIndex),
       lastDemoRating: demoRating || null,
       totalReaktions: admin.firestore.FieldValue.increment(1),
+    
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -198,12 +204,19 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
       userRef,
       {
         email: userEmail,
+        memberSinceYear:
+          userData.memberSinceYear ||
+          (userData.created_time?.toDate
+            ? userData.created_time.toDate().getFullYear().toString()
+            : new Date().getFullYear().toString()),
+    
         totalReaktions: newTotalReaktions,
         dambCoins: newDambCoins,
         voiceWeight: listenerStats.voiceWeight,
         progressPercent: listenerStats.progressPercent,
         listenerTier: listenerStats.listenerTier,
         nextTierTarget: listenerStats.nextTierTarget,
+    
         lastReaktionAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
