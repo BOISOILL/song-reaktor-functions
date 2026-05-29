@@ -62,6 +62,7 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
       currentSongIndex: nextSongIndex,
       unlockedSongIndex: Math.max(unlockedSongIndex, nextSongIndex),
       lastDemoRating: demoRating || null,
+      totalReaktions: admin.firestore.FieldValue.increment(1),
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
   });
