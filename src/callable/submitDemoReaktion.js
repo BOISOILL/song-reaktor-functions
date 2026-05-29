@@ -47,7 +47,20 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
   const db = admin.firestore();
 
   const explorerRef = db.collection("explorer_sessions").doc(explorerSessionId);
-  const userRef = db.collection("users").doc(userEmail);
+  const userQuery = await db
+  .collection("users")
+  .where("email", "==", userEmail)
+  .limit(1)
+  .get();
+
+if (userQuery.empty) {
+  throw new functions.https.HttpsError(
+    "not-found",
+    "User document not found."
+  );
+}
+
+const userRef = userQuery.docs[0].ref;
   const reaktionRef = db.collection("reaktions").doc();
 
   await db.runTransaction(async (transaction) => {
