@@ -2,6 +2,81 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 // Do not call admin.initializeApp() here.
 
+function calculateListenerStats(totalReaktions) {
+  let voiceWeight = 1;
+  let listenerTier = "Listener";
+  let nextTierTarget = 10;
+
+  if (totalReaktions >= 10) {
+    voiceWeight = 2;
+    listenerTier = "Single Sniper";
+    nextTierTarget = 25;
+  }
+
+  if (totalReaktions >= 25) {
+    voiceWeight = 3;
+    listenerTier = "Hit Finder";
+    nextTierTarget = 50;
+  }
+
+  if (totalReaktions >= 50) {
+    voiceWeight = 4;
+    listenerTier = "D.A.M.B. Certified";
+    nextTierTarget = 100;
+  }
+
+  if (totalReaktions >= 100) {
+    voiceWeight = 5;
+    listenerTier = "Trend Setter";
+    nextTierTarget = 250;
+  }
+
+  if (totalReaktions >= 250) {
+    voiceWeight = 6;
+    listenerTier = "Tastemaker";
+    nextTierTarget = 500;
+  }
+
+  if (totalReaktions >= 500) {
+    voiceWeight = 7;
+    listenerTier = "A&R Assassin";
+    nextTierTarget = 1000;
+  }
+
+  if (totalReaktions >= 1000) {
+    voiceWeight = 10;
+    listenerTier = "D.A.M.B. Needle Elite";
+    nextTierTarget = 1000;
+  }
+
+  const tierStart =
+    totalReaktions >= 1000 ? 1000 :
+    totalReaktions >= 500 ? 500 :
+    totalReaktions >= 250 ? 250 :
+    totalReaktions >= 100 ? 100 :
+    totalReaktions >= 50 ? 50 :
+    totalReaktions >= 25 ? 25 :
+    totalReaktions >= 10 ? 10 :
+    0;
+
+  const tierRange = nextTierTarget - tierStart;
+
+  const progressPercent =
+    totalReaktions >= 1000
+      ? 100
+      : Math.min(
+          Math.round(((totalReaktions - tierStart) / tierRange) * 100),
+          100
+        );
+
+  return {
+    voiceWeight,
+    listenerTier,
+    progressPercent,
+    nextTierTarget,
+  };
+}
+
 exports.submitDemoReaktion = functions.https.onCall(async (request) => {
   const data = request.data || request.body?.data || request.body || request;
 
@@ -60,6 +135,7 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
 
   await db.runTransaction(async (transaction) => {
     const explorerSnap = await transaction.get(explorerRef);
+    const userSnap = await transaction.get(userRef);
 
     if (!explorerSnap.exists) {
       throw new functions.https.HttpsError(
@@ -69,6 +145,7 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
     }
 
     const explorerData = explorerSnap.data() || {};
+    const userData = userSnap.exists ? userSnap.data() || {} : {};
 
     const currentSongIndex = explorerData.currentSongIndex || 0;
     const unlockedSongIndex = explorerData.unlockedSongIndex || 0;
@@ -79,6 +156,10 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
     const updatedCompletedSongIds = completedSongIds.includes(demoSongId)
       ? completedSongIds
       : [...completedSongIds, demoSongId];
+
+    const newTotalReaktions = (userData.totalReaktions || 0) + 1;
+    const newDambCoins = (userData.dambCoins || 0) + 1;
+    const listenerStats = calculateListenerStats(newTotalReaktions);
 
     transaction.set(reaktionRef, {
       guestSessionId,
@@ -117,11 +198,12 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
       userRef,
       {
         email: userEmail,
-        totalReaktions: admin.firestore.FieldValue.increment(1),
-        dambCoins: admin.firestore.FieldValue.increment(1),
-        voiceWeight: admin.firestore.FieldValue.increment(1),
-        progressPercent: admin.firestore.FieldValue.increment(1),
-        listenerTier: "Rookie Reaktor",
+        totalReaktions: newTotalReaktions,
+        dambCoins: newDambCoins,
+        voiceWeight: listenerStats.voiceWeight,
+        progressPercent: listenerStats.progressPercent,
+        listenerTier: listenerStats.listenerTier,
+        nextTierTarget: listenerStats.nextTierTarget,
         lastReaktionAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
@@ -150,6 +232,6 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
     demoSongId,
     demoRating,
     demoReaktionSubmitted: true,
-    debugMessage: "Reaktion saved, session advanced, user total updated.",
+    debugMessage: "Reaktion saved, session advanced, listener stats updated.",
   };
 });
