@@ -5,15 +5,23 @@ const admin = require("firebase-admin");
 exports.submitDemoReaktion = functions.https.onCall(async (request) => {
   const data = request.data || request.body?.data || request.body || request;
 
-  const guestSessionId = data.guestSessionId;
+  const guestSessionId = data.guestSessionId || "";
   const explorerSessionId = data.explorerSessionId;
+  const userEmail = data.userEmail;
   const demoSongId = data.demoSongId;
   const demoRating = data.demoRating;
+  const comments = data.comments || "";
 
-  console.log("Incoming payload:", data);
-  console.log("explorerSessionId:", explorerSessionId);
-  console.log("demoSongId:", demoSongId);
-  console.log("demoRating:", demoRating);
+  const actualListenMs = data.actualListenMs || 0;
+  const requiredListenMs = data.requiredListenMs || 30000;
+  const extraTimeRequestedMs = data.extraTimeRequestedMs || 0;
+  const logoTapCount = data.logoTapCount || 0;
+  const usedMaxExtension = data.usedMaxExtension || false;
+  const endedAtMs = data.endedAtMs || actualListenMs;
+
+  const songName = data.songName || "";
+  const artistName = data.artistName || "";
+  const artistEmail = data.artistEmail || "";
 
   if (!explorerSessionId) {
     throw new functions.https.HttpsError(
@@ -29,13 +37,21 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
     );
   }
 
+  if (!userEmail) {
+    throw new functions.https.HttpsError(
+      "invalid-argument",
+      "userEmail is required."
+    );
+  }
+
   const db = admin.firestore();
+
   const explorerRef = db.collection("explorer_sessions").doc(explorerSessionId);
+  const userRef = db.collection("users").doc(userEmail);
+  const reaktionRef = db.collection("reaktions").doc();
 
   await db.runTransaction(async (transaction) => {
     const explorerSnap = await transaction.get(explorerRef);
-
-    console.log("Explorer exists:", explorerSnap.exists);
 
     if (!explorerSnap.exists) {
       throw new functions.https.HttpsError(
@@ -56,15 +72,62 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
       ? completedSongIds
       : [...completedSongIds, demoSongId];
 
-    transaction.update(explorerRef, {
-      completedSongIds: updatedCompletedSongIds,
-      lastCompletedSongId: demoSongId,
-      currentSongIndex: nextSongIndex,
-      unlockedSongIndex: Math.max(unlockedSongIndex, nextSongIndex),
-      lastDemoRating: demoRating || null,
-      totalReaktions: admin.firestore.FieldValue.increment(1),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+    transaction.set(reaktionRef, {
+      guestSessionId,
+      explorerSessionId,
+      userEmail,
+      songId: demoSongId,
+      songName,
+      artistName,
+      artistEmail,
+      score: demoRating,
+      comments,
+
+      actualListenMs,
+      requiredListenMs,
+      extraTimeRequestedMs,
+      logoTapCount,
+      usedMaxExtension,
+      endedAtMs,
+
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      reaktionSubmittedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+   transaction.update(explorerRef, {
+  completedSongIds: updatedCompletedSongIds,
+  lastCompletedSongId: demoSongId,
+  currentSongIndex: nextSongIndex,
+  unlockedSongIndex: Math.max(unlockedSongIndex, nextSongIndex),
+
+  lastDemoRating: demoRating || null,
+
+  totalReaktions:
+    admin.firestore.FieldValue.increment(1),
+
+  updatedAt:
+    admin.firestore.FieldValue.serverTimestamp(),
+});
+
+        transaction.set(
+      userRef,
+      {
+        email: userEmail,
+
+        totalReaktions: admin.firestore.FieldValue.increment(1),
+        dambCoins: admin.firestore.FieldValue.increment(1),
+
+        voiceWeight: admin.firestore.FieldValue.increment(1),
+
+        progressPercent: admin.firestore.FieldValue.increment(1),
+
+        listenerTier: "Rookie Reaktor",
+
+        lastReaktionAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
   });
 
   if (guestSessionId) {
@@ -81,11 +144,12 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
 
   return {
     success: true,
+    reaktionId: reaktionRef.id,
     guestSessionId,
     explorerSessionId,
     demoSongId,
     demoRating,
     demoReaktionSubmitted: true,
-    debugMessage: "Explorer session update completed",
+    debugMessage: "Reaktion saved, session advanced, user total updated.",
   };
 });
