@@ -99,6 +99,17 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
   const artistName = data.artistName || "";
   const artistEmail = data.artistEmail || "";
 
+  const coverImageUrl = data.coverImageUrl || "";
+const orderNumber = data.orderNumber || "";
+const deviceId = data.deviceId || "";
+const userName = data.userName || "";
+const userCity = data.userCity || "";
+const userState = data.userState || "";
+const userZipCode = data.userZipCode || "";
+const userImage = data.userImage || "";
+const maxAllowedListenMs = data.maxAllowedListenMs || 90000;
+const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
+
   if (!explorerSessionId) {
     throw new functions.https.HttpsError(
       "invalid-argument",
@@ -166,22 +177,37 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
       explorerSessionId,
       userEmail,
       userDocId,
+    
       songId: demoSongId,
       songName,
       artistName,
       artistEmail,
+      coverImageUrl,
+      orderNumber,
+    
       score: demoRating,
+      sliderValue: demoRating,
       comments,
-
+    
       actualListenMs,
       requiredListenMs,
+      maxAllowedListenMs,
       extraTimeRequestedMs,
       logoTapCount,
       usedMaxExtension,
       endedAtMs,
-
+      submittedAfterUnlockMs,
+    
+      deviceId,
+      userName,
+      userCity,
+      userState,
+      userZipCode,
+      userImage,
+    
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       reaktionSubmittedAt: admin.firestore.FieldValue.serverTimestamp(),
+      reaktTime: admin.firestore.FieldValue.serverTimestamp(),
     });
 
     transaction.update(explorerRef, {
