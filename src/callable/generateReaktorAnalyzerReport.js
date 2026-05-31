@@ -69,11 +69,10 @@ exports.generateReaktorAnalyzerReport = functions.https.onCall(async (request) =
   const songData = songSnap.data() || {};
 
   const reaktionsSnap = await db
-    .collection("reaktions")
-    .where("songId", "==", songId)
-    .orderBy("createdAt", "desc")
-    .limit(100)
-    .get();
+  .collection("reaktions")
+  .where("songId", "==", songId)
+  .limit(100)
+  .get();
 
   let totalScore = 0;
   let count = 0;
