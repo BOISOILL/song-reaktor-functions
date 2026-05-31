@@ -48,3 +48,6 @@ exports.getSimilarFanInterests =
 
 exports.generateSongFeedbackSummary =
   require("./src/callable/generateSongFeedbackSummary").generateSongFeedbackSummary;
+
+exports.generateReaktorAnalyzerReport =
+  require("./src/callable/generateReaktorAnalyzerReport").generateReaktorAnalyzerReport;
