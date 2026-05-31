@@ -42,3 +42,6 @@ exports.submitDemoReaction =
 
 exports.submitDemoReaktion =
   require("./src/callable/submitDemoReaktion").submitDemoReaktion;
+
+exports.getSimilarFanInterests =
+  require("./src/callable/getSimilarFanInterests").getSimilarFanInterests;
