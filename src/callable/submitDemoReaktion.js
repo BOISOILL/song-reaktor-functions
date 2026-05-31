@@ -2,6 +2,20 @@ const functions = require("firebase-functions");
 const admin = require("firebase-admin");
 // Do not call admin.initializeApp() here.
 
+function classifyScore(percent) {
+  if (percent >= 90) return "Smash Hit";
+  if (percent >= 80) return "A Single";
+  if (percent >= 70) return "Album Song";
+  return "Still Needs Work";
+}
+
+function classifyListenerRetention(actualListenMs) {
+  if (actualListenMs < 30000) return "Skipped Early";
+  if (actualListenMs < 60000) return "Minimum Listen";
+  if (actualListenMs < 90000) return "Engaged Listen";
+  return "Max-Time Listener";
+}
+
 function calculateListenerStats(totalReaktions) {
   let voiceWeight = 1;
   let listenerTier = "Listener";
@@ -100,15 +114,15 @@ exports.submitDemoReaktion = functions.https.onCall(async (request) => {
   const artistEmail = data.artistEmail || "";
 
   const coverImageUrl = data.coverImageUrl || "";
-const orderNumber = data.orderNumber || "";
-const deviceId = data.deviceId || "";
-const userName = data.userName || "";
-const userCity = data.userCity || "";
-const userState = data.userState || "";
-const userZipCode = data.userZipCode || "";
-const userImage = data.userImage || "";
-const maxAllowedListenMs = data.maxAllowedListenMs || 90000;
-const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
+  const orderNumber = data.orderNumber || "";
+  const deviceId = data.deviceId || "";
+  const userName = data.userName || "";
+  const userCity = data.userCity || "";
+  const userState = data.userState || "";
+  const userZipCode = data.userZipCode || "";
+  const userImage = data.userImage || "";
+  const maxAllowedListenMs = data.maxAllowedListenMs || 90000;
+  const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
 
   if (!explorerSessionId) {
     throw new functions.https.HttpsError(
@@ -143,10 +157,17 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
   const explorerRef = db.collection("explorer_sessions").doc(explorerSessionId);
   const userRef = db.collection("users").doc(userDocId);
   const reaktionRef = db.collection("reaktions").doc();
+  const songRef = db.collection("studio_uploads").doc(demoSongId);
+
+  const scorePercent = Math.round((demoRating / 9) * 100);
+  const songClassification = classifyScore(scorePercent);
+  const listenerRetention = classifyListenerRetention(actualListenMs);
+  const fanQualified = demoRating >= 8;
 
   await db.runTransaction(async (transaction) => {
     const explorerSnap = await transaction.get(explorerRef);
     const userSnap = await transaction.get(userRef);
+    const songSnap = await transaction.get(songRef);
 
     if (!explorerSnap.exists) {
       throw new functions.https.HttpsError(
@@ -157,6 +178,7 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
 
     const explorerData = explorerSnap.data() || {};
     const userData = userSnap.exists ? userSnap.data() || {} : {};
+    const songData = songSnap.exists ? songSnap.data() || {} : {};
 
     const currentSongIndex = explorerData.currentSongIndex || 0;
     const unlockedSongIndex = explorerData.unlockedSongIndex || 0;
@@ -171,6 +193,39 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
     const newTotalReaktions = (userData.totalReaktions || 0) + 1;
     const newDambCoins = (userData.dambCoins || 0) + 1;
     const listenerStats = calculateListenerStats(newTotalReaktions);
+
+    const existingSongReaktionCount = songData.total_reaktions || 0;
+    const existingAvgPercent = songData.avg_score_percent || 0;
+
+    const existingTotalScorePoints =
+      songData.total_score_points ||
+      Math.round((existingAvgPercent / 100) * 9 * existingSongReaktionCount);
+
+    const newSongReaktionCount = existingSongReaktionCount + 1;
+    const newTotalScorePoints = existingTotalScorePoints + demoRating;
+
+    const newAvgScorePercentage = Math.round(
+      (newTotalScorePoints / (newSongReaktionCount * 9)) * 100
+    );
+
+    const overallClassification = classifyScore(newAvgScorePercentage);
+
+    const retentionUpdate = {
+      minimum_listen_count: songData.minimum_listen_count || 0,
+      engaged_listen_count: songData.engaged_listen_count || 0,
+      max_time_count: songData.max_time_count || 0,
+      early_skip_count: songData.early_skip_count || 0,
+    };
+
+    if (listenerRetention === "Skipped Early") {
+      retentionUpdate.early_skip_count += 1;
+    } else if (listenerRetention === "Minimum Listen") {
+      retentionUpdate.minimum_listen_count += 1;
+    } else if (listenerRetention === "Engaged Listen") {
+      retentionUpdate.engaged_listen_count += 1;
+    } else if (listenerRetention === "Max-Time Listener") {
+      retentionUpdate.max_time_count += 1;
+    }
 
     transaction.set(reaktionRef, {
       guestSessionId,
@@ -187,7 +242,13 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
     
       score: demoRating,
       sliderValue: demoRating,
+    
+      songScorePercent: scorePercent,
+      individualClassification: songClassification,
+    
       comments,
+    
+      fanQualified,
     
       actualListenMs,
       requiredListenMs,
@@ -197,6 +258,7 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
       usedMaxExtension,
       endedAtMs,
       submittedAfterUnlockMs,
+      listenerRetention,
     
       deviceId,
       userName,
@@ -215,16 +277,37 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
       userEmail,
       mode: "demo",
       status: "active",
-    
+
       completedSongIds: updatedCompletedSongIds,
       lastCompletedSongId: demoSongId,
       currentSongIndex: nextSongIndex,
       unlockedSongIndex: Math.max(unlockedSongIndex, nextSongIndex),
       lastDemoRating: demoRating || null,
       totalReaktions: admin.firestore.FieldValue.increment(1),
-    
+
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
+
+    transaction.set(
+      songRef,
+      {
+        total_reaktions: newSongReaktionCount,
+        total_score_points: newTotalScorePoints,
+        avg_score_percent: newAvgScorePercentage,
+        avg_score_percentage: newAvgScorePercentage,
+        classification: overallClassification,
+        overallClassification,
+
+        minimum_listen_count: retentionUpdate.minimum_listen_count,
+        engaged_listen_count: retentionUpdate.engaged_listen_count,
+        max_time_count: retentionUpdate.max_time_count,
+        early_skip_count: retentionUpdate.early_skip_count,
+
+        lastReaktionAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
 
     transaction.set(
       userRef,
@@ -235,14 +318,14 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
           (userData.created_time?.toDate
             ? userData.created_time.toDate().getFullYear().toString()
             : new Date().getFullYear().toString()),
-    
+
         totalReaktions: newTotalReaktions,
         dambCoins: newDambCoins,
         voiceWeight: listenerStats.voiceWeight,
         progressPercent: listenerStats.progressPercent,
         listenerTier: listenerStats.listenerTier,
         nextTierTarget: listenerStats.nextTierTarget,
-    
+
         lastReaktionAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       },
@@ -270,7 +353,11 @@ const submittedAfterUnlockMs = data.submittedAfterUnlockMs || 0;
     userDocId,
     demoSongId,
     demoRating,
+    scorePercent,
+    songClassification,
+    listenerRetention,
+    fanQualified,
     demoReaktionSubmitted: true,
-    debugMessage: "Reaktion saved, session advanced, listener stats updated.",
+    debugMessage: "Reaktion saved, song stats updated, listener stats updated.",
   };
 });
