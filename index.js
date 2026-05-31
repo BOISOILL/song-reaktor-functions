@@ -45,3 +45,6 @@ exports.submitDemoReaktion =
 
 exports.getSimilarFanInterests =
   require("./src/callable/getSimilarFanInterests").getSimilarFanInterests;
+
+exports.generateSongFeedbackSummary =
+  require("./src/callable/generateSongFeedbackSummary").generateSongFeedbackSummary;
