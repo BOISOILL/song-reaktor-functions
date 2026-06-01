@@ -268,10 +268,20 @@ exports.generateReaktorAnalyzerReport = functions.https.onCall(async (request) =
       analyzerConfidenceLevel: report.confidenceLevel || "",
   
       analyzerHitPotential: report.hitPotential || "",
-      analyzerValidationRequired: report.validationRequired || "",
-      analyzerSummary: report.overallScoreInsight || "",
-      analyzerOpinion: report.reaktorAnalyzerOpinion || "",
-      analyzerScoreInsight: report.overallScoreInsight || "",
+analyzerValidationRequired: report.validationRequired || "",
+analyzerSummary: report.overallScoreInsight || "",
+analyzerOpinion: report.reaktorAnalyzerOpinion || "",
+analyzerScoreInsight: report.overallScoreInsight || "",
+
+analyzerStrengths: Array.isArray(report.whatListenersLoved)
+  ? report.whatListenersLoved.join("\n")
+  : "",
+
+analyzerWeaknesses: Array.isArray(report.whatNeedsWork)
+  ? report.whatNeedsWork.join("\n")
+  : "",
+
+analyzerRecommendations: report.reaktorAnalyzerOpinion || "",
   
       reaktorAnalyzerUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
