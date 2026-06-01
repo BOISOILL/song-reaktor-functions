@@ -257,6 +257,22 @@ exports.generateReaktorAnalyzerReport = functions.https.onCall(async (request) =
   await songRef.set(
     {
       reaktorAnalyzerReport: report,
+  
+      analyzerFinalDecision: report.finalDecision || "",
+      analyzerClassification: report.classification || "",
+      analyzerBuyingSignal: report.buyingSignal || "",
+      analyzerTourPotential: report.tourPotential || "",
+      analyzerRealityCheck: report.finalRealityCheck || "",
+      analyzerReleaseRisk: report.releaseRisk || "",
+      analyzerSignal: report.signal || "",
+      analyzerConfidenceLevel: report.confidenceLevel || "",
+  
+      analyzerHitPotential: report.hitPotential || "",
+      analyzerValidationRequired: report.validationRequired || "",
+      analyzerSummary: report.overallScoreInsight || "",
+      analyzerOpinion: report.reaktorAnalyzerOpinion || "",
+      analyzerScoreInsight: report.overallScoreInsight || "",
+  
       reaktorAnalyzerUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
     },
     { merge: true }
